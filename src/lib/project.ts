@@ -107,7 +107,9 @@ export async function importProjectFile(file: File): Promise<ImportedProject> {
       if (bytes.byteLength > 100 * 1024 * 1024) throw new Error("Audio asset is larger than the 100 MB import limit.");
       const extension = preferredAudio.split(".").pop()?.toLowerCase() ?? "mp3";
       const mime = extension === "mp3" ? "audio/mpeg" : extension === "m4a" ? "audio/mp4" : `audio/${extension}`;
-      audioBlob = new Blob([bytes], { type: mime });
+      const audioBuffer = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(audioBuffer).set(bytes);
+      audioBlob = new Blob([audioBuffer], { type: mime });
       audioName = preferredAudio.split("/").pop() ?? preferredAudio;
     }
   }
