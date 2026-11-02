@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { renderMediaOnWeb } from "@remotion/web-renderer";
-import { Download, FileArchive, FileJson, Film, FolderOpen, Play, Plus, RefreshCw, Upload, WandSparkles } from "lucide-react";
+import { ClipboardCopy, Download, FileArchive, FileJson, Film, FolderOpen, Play, Plus, RefreshCw, Upload, WandSparkles } from "lucide-react";
 import { DEFAULT_PROJECT, type VideoProject, type VideoScene } from "./types";
 import { importProjectFile, projectToJson, validateProject } from "./lib/project";
 import { getDurationInFrames, VideoComposition } from "./VideoComposition";
@@ -102,6 +102,54 @@ export default function App() {
     }
   };
 
+  const copyAiPrompt = async () => {
+    const prompt = `Create a Video-Maker project as valid JSON only. Do not return markdown fences or executable code.
+
+Use this schema:
+{
+  "format": "videomaker",
+  "version": "1.0",
+  "title": "Video title",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "background": "#0b1220",
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "title",
+      "duration": 4,
+      "title": "Opening title",
+      "body": "Short subtitle",
+      "accent": "#34d399"
+    }
+  ]
+}
+
+Allowed scene types:
+- title: title + optional body
+- text: title + body
+- stat: title + value + label
+- bullets: title + bullets (array of short strings)
+- outro: title + optional body
+
+Rules:
+- Use 1 to 60 scenes.
+- Each duration must be 1 to 120 seconds.
+- Use fps 24, 25, 30, 50, or 60.
+- Use canvas size 1920x1080, 1280x720, 1080x1920, or 1080x1080.
+- Accent and background colors must be six-digit hex colors.
+- Keep titles concise and body copy readable on screen.
+- Return the complete JSON object, with no comments and no trailing commas.`;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setMessage("Video-Maker AI prompt copied. Paste it into ChatGPT, Claude, Gemini, or another AI.");
+      setError("");
+    } catch {
+      setError("Clipboard access was blocked. Copy the prompt from AI_PROMPT.md in the repository.");
+    }
+  };
+
   const downloadJson = () => {
     const blob = new Blob([projectToJson(project)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -118,7 +166,7 @@ export default function App() {
         <a className="brand" href="#"><span className="brand-mark"><Film size={19} /></span><span>VIDEO<span className="brand-light">.MAKER</span></span></a>
         <div className="topbar-center"><span className="status-dot" /> LOCAL WORKSPACE <span className="topbar-divider">/</span> {project.title}</div>
         <div className="topbar-actions">
-          <button className="button button-ghost" onClick={() => fileRef.current?.click()}><FolderOpen size={16} /> Import</button>
+          <button className="button button-ghost" onClick={copyAiPrompt}><ClipboardCopy size={16} /> AI Prompt</button><button className="button button-ghost" onClick={() => fileRef.current?.click()}><FolderOpen size={16} /> Import</button>
           <button className="button button-primary" onClick={exportVideo} disabled={rendering}><Download size={16} /> {rendering ? `Rendering ${progress}%` : "Export MP4"}</button>
         </div>
       </header>
