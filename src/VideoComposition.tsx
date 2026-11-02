@@ -1,4 +1,5 @@
 import React from "react";
+import { Audio } from "@remotion/media";
 import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { VideoProject, VideoScene } from "./types";
 
@@ -52,9 +53,10 @@ const SceneVisual: React.FC<{ scene: VideoScene; background: string }> = ({ scen
   );
 };
 
-export const VideoComposition: React.FC<{ project: VideoProject }> = ({ project }) => {
+export const VideoComposition: React.FC<{ project: VideoProject; audioSrc?: string; audioVolume?: number }> = ({ project, audioSrc, audioVolume = 1 }) => {
   let from = 0;
   return (
+    <>
     <AbsoluteFill style={{ background: project.background ?? "#0b1220" }}>
       {project.scenes.map((scene) => {
         const start = from;
@@ -67,6 +69,8 @@ export const VideoComposition: React.FC<{ project: VideoProject }> = ({ project 
         );
       })}
     </AbsoluteFill>
+      {audioSrc ? <Audio src={audioSrc} volume={audioVolume} /> : null}
+    </>
   );
 };
 
