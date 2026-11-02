@@ -63,10 +63,16 @@ export function validateProject(input: unknown): VideoProject {
   };
 }
 
-export async function importProjectFile(file: File): Promise<VideoProject> {
+export type ImportedProject = {
+  project: VideoProject;
+  audioBlob?: Blob;
+  audioName?: string;
+};
+
+export async function importProjectFile(file: File): Promise<ImportedProject> {
   if (file.size > 100 * 1024 * 1024) throw new Error("Import is limited to 100 MB per file.");
   if (file.name.toLowerCase().endsWith(".json")) {
-    return validateProject(JSON.parse(await file.text()));
+    return { project: validateProject(JSON.parse(await file.text())) };
   }
   if (!file.name.toLowerCase().endsWith(".zip")) {
     throw new Error("Choose a .json project or a .zip archive.");
@@ -88,7 +94,24 @@ export async function importProjectFile(file: File): Promise<VideoProject> {
     );
     raw.scenes = sceneFiles;
   }
-  return validateProject(raw);
+  const audioPaths = Object.keys(zip.files).filter((path) => !zip.files[path].dir && /\.(mp3|wav|m4a|aac|ogg)$/i.test(path));
+  const preferredAudio = audioPaths.find((path) => /(^|\/)voiceover-full\.mp3$/i.test(path))
+    ?? audioPaths.find((path) => /(^|\/)voiceover\/audio\//i.test(path))
+    ?? audioPaths[0];
+  let audioBlob: Blob | undefined;
+  let audioName: string | undefined;
+  if (preferredAudio) {
+    const entry = zip.file(preferredAudio);
+    if (entry) {
+      const bytes = await entry.async("uint8array");
+      if (bytes.byteLength > 100 * 1024 * 1024) throw new Error("Audio asset is larger than the 100 MB import limit.");
+      const extension = preferredAudio.split(".").pop()?.toLowerCase() ?? "mp3";
+      const mime = extension === "mp3" ? "audio/mpeg" : extension === "m4a" ? "audio/mp4" : `audio/${extension}`;
+      audioBlob = new Blob([bytes], { type: mime });
+      audioName = preferredAudio.split("/").pop() ?? preferredAudio;
+    }
+  }
+  return { project: validateProject(raw), audioBlob, audioName };
 }
 
 export function projectToJson(project: VideoProject): string {
