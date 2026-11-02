@@ -46,8 +46,9 @@ export function validateProject(input: unknown): VideoProject {
   const width = Number(input.width ?? 1920);
   const height = Number(input.height ?? 1080);
   if (![24, 25, 30, 50, 60].includes(fps)) throw new Error("FPS must be 24, 25, 30, 50, or 60.");
-  if (![1920, 1280, 1080, 1080, 720].includes(width) || ![1080, 720, 1920].includes(height)) {
-    throw new Error("Use a supported canvas size such as 1920×1080, 1280×720, or 1080×1920.");
+  const supportedSizes = ["1920x1080", "1280x720", "1080x1920", "1080x1080"];
+  if (!supportedSizes.includes(`${width}x${height}`)) {
+    throw new Error("Use a supported canvas size: 1920×1080, 1280×720, 1080×1920, or 1080×1080.");
   }
 
   return {
