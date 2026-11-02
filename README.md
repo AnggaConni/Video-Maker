@@ -29,7 +29,7 @@ npm run preview
 ```
 
 ## Import format
-Import a `.json` file or a `.zip` containing `project.json` at its root. The project JSON can contain scenes inline or reference JSON files under `scenes/`.
+Import a `.json` file or a `.zip` containing `project.json` at its root. The project JSON can contain scenes inline or reference JSON files under `scenes/`. The paste panel accepts the same JSON project format (including JSON copied from an AI response). Arbitrary React/TSX source is intentionally not executed.
 
 See `public/example-project.json` for the format.
 
