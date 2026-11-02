@@ -41,7 +41,8 @@ export default function App() {
 
   const applyJson = () => {
     try {
-      applyProject(validateProject(JSON.parse(jsonText)), "JSON validated and applied.");
+      const cleaned = jsonText.trim().replace(/^\\x60{3}(?:json)?\\s*/i, "").replace(/\\s*\\x60{3}$/, "");
+      applyProject(validateProject(JSON.parse(cleaned)), "JSON validated and applied.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid project JSON.");
     }
