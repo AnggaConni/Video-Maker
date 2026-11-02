@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { renderMediaOnWeb } from "@remotion/web-renderer";
-import { ClipboardCopy, Download, FileArchive, FileJson, Film, FolderOpen, Play, Plus, RefreshCw, Upload, WandSparkles } from "lucide-react";
+import { ClipboardCopy, Download, FileArchive, FileJson, Film, FolderOpen, Music2, Play, Plus, RefreshCw, Upload, WandSparkles } from "lucide-react";
 import { DEFAULT_PROJECT, type VideoProject, type VideoScene } from "./types";
 import { importProjectFile, projectToJson, validateProject } from "./lib/project";
 import { getDurationInFrames, VideoComposition } from "./VideoComposition";
@@ -16,11 +16,29 @@ export default function App() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [rendering, setRendering] = useState(false);
+  const [audioSrc, setAudioSrc] = useState("");
+  const [audioName, setAudioName] = useState("");
+  const [audioVolume, setAudioVolume] = useState(1);
   const fileRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLInputElement>(null);
+  useEffect(() => () => { if (audioSrc) URL.revokeObjectURL(audioSrc); }, [audioSrc]);
   const duration = useMemo(() => getDurationInFrames(project), [project]);
   const selected = project.scenes.find((scene) => scene.id === selectedId) ?? project.scenes[0];
 
-  const applyProject = (next: VideoProject, success: string) => {
+  const clearAudio = () => {
+    setAudioSrc("");
+    setAudioName("");
+    setAudioVolume(1);
+  };
+
+  const applyProject = (next: VideoProject, success: string, audioBlob?: Blob, importedAudioName?: string) => {
+    if (audioBlob) {
+      setAudioSrc(URL.createObjectURL(audioBlob));
+      setAudioName(importedAudioName ?? "Imported audio");
+      setAudioVolume(1);
+    } else {
+      clearAudio();
+    }
     setProject(next);
     setSelectedId(next.scenes[0].id);
     setJsonText(projectToJson(next));
@@ -31,12 +49,23 @@ export default function App() {
   const handleImport = async (file?: File) => {
     if (!file) return;
     try {
-      const next = await importProjectFile(file);
-      applyProject(next, `Imported ${file.name} successfully.`);
+      const imported = await importProjectFile(file);
+      applyProject(imported.project, imported.audioBlob ? `Imported ${file.name} and detected voice-over audio.` : `Imported ${file.name} successfully.`, imported.audioBlob, imported.audioName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import this file.");
     }
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleAudioImport = (file?: File) => {
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) { setError("Audio import is limited to 100 MB."); return; }
+    setAudioSrc(URL.createObjectURL(file));
+    setAudioName(file.name);
+    setAudioVolume(1);
+    setError("");
+    setMessage(`Audio track loaded: ${file.name}`);
+    if (audioRef.current) audioRef.current.value = "";
   };
 
   const applyJson = () => {
@@ -78,9 +107,11 @@ export default function App() {
           fps: project.fps,
           width: project.width,
           height: project.height,
-          defaultProps: { project },
+          defaultProps: { project, audioSrc: audioSrc || undefined, audioVolume },
         },
-        inputProps: { project },
+        inputProps: { project, audioSrc: audioSrc || undefined, audioVolume },
+        audioCodec: audioSrc ? "aac" : undefined,
+        audioBitrate: audioSrc ? "high" : undefined,
         container: "mp4",
         videoCodec: "h264",
         videoBitrate: "high",
@@ -168,11 +199,13 @@ Rules:
         <div className="topbar-center"><span className="status-dot" /> LOCAL WORKSPACE <span className="topbar-divider">/</span> {project.title}</div>
         <div className="topbar-actions">
           <button className="button button-ghost" onClick={copyAiPrompt}><ClipboardCopy size={16} /> AI Prompt</button><button className="button button-ghost" onClick={() => fileRef.current?.click()}><FolderOpen size={16} /> Import</button>
+          <button className="button button-ghost" onClick={() => audioRef.current?.click()}><Music2 size={16} /> Audio</button>
           <button className="button button-primary" onClick={exportVideo} disabled={rendering}><Download size={16} /> {rendering ? `Rendering ${progress}%` : "Export MP4"}</button>
         </div>
       </header>
 
       <input ref={fileRef} type="file" accept=".json,.zip,application/json,application/zip" hidden onChange={(event) => handleImport(event.target.files?.[0])} />
+      <input ref={audioRef} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg" hidden onChange={(event) => handleAudioImport(event.target.files?.[0])} />
 
       <main className="workspace">
         <aside className="sidebar">
@@ -194,7 +227,7 @@ Rules:
           <div className="editor-heading"><div><span className="eyebrow">CANVAS PREVIEW</span><h1>{project.title}</h1></div><span className="resolution-pill">{project.width} × {project.height} · {project.fps} FPS</span></div>
           <div className="preview-stage">
             <div className="preview-frame" style={{ aspectRatio: `${project.width}/${project.height}` }}>
-              <Player component={VideoComposition} inputProps={{ project }} durationInFrames={duration} compositionWidth={project.width} compositionHeight={project.height} fps={project.fps} controls style={{ width: "100%" }} />
+              <Player component={VideoComposition} inputProps={{ project, audioSrc: audioSrc || undefined, audioVolume }} durationInFrames={duration} compositionWidth={project.width} compositionHeight={project.height} fps={project.fps} controls style={{ width: "100%" }} />
             </div>
           </div>
           <div className="timeline-header"><span>SCENE TIMELINE</span><span>{formatTime(duration / project.fps)} TOTAL DURATION</span></div>
@@ -205,6 +238,7 @@ Rules:
               </button>
             ))}
           </div>
+          {audioSrc && <div className="audio-lane"><span className="audio-lane-label"><Music2 size={13} /> VOICE-OVER</span><div className="audio-lane-track"><div className="audio-lane-clip"><span>{audioName}</span></div></div></div>}
           <div className="notice"><span className="notice-icon"><WandSparkles size={16} /></span><span>{message}</span></div>
           {error && <div className="error-notice">{error}</div>}
           {rendering && <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>}
@@ -228,6 +262,15 @@ Rules:
               setProject(next); setSelectedId(nextScenes[0].id); setJsonText(projectToJson(next));
             }}>Delete scene</button>
           </div>}
+          <div className="audio-panel">
+            <div className="audio-panel-heading"><span><Music2 size={14} /> AUDIO TRACK</span><small>{audioSrc ? "LOADED" : "NO AUDIO"}</small></div>
+            {audioSrc ? <>
+              <div className="audio-file"><Music2 size={15} /><span>{audioName}</span></div>
+              <label>Volume · {Math.round(audioVolume * 100)}%<input type="range" min="0" max="1" step="0.05" value={audioVolume} onChange={(e) => setAudioVolume(Number(e.target.value))} /></label>
+              <button className="button button-danger" onClick={clearAudio}>Remove audio</button>
+            </> : <p>Import an MP3 or WAV voice-over. ZIP projects can include voiceover/audio/voiceover-full.mp3.</p>}
+            <button className="button button-outline apply-button" onClick={() => audioRef.current?.click()}>{audioSrc ? "Replace audio file" : "Choose audio file"}</button>
+          </div>
           <div className="json-panel">
             <div className="json-panel-heading"><div><FileJson size={15} /> AI PROJECT JSON</div><button onClick={downloadJson}>Download</button></div>
             <textarea spellCheck={false} value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
