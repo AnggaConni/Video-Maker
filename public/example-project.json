@@ -1,0 +1,43 @@
+{
+  "format": "videomaker",
+  "version": "1.0",
+  "title": "A Short Tutorial",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "background": "#0b1220",
+  "scenes": [
+    {
+      "id": "opening",
+      "type": "title",
+      "duration": 4,
+      "title": "YOUR BIG IDEA",
+      "body": "A video generated from a simple JSON storyboard.",
+      "accent": "#34d399"
+    },
+    {
+      "id": "explain",
+      "type": "text",
+      "duration": 5,
+      "title": "One project. Many scenes.",
+      "body": "Ask any AI to create a Video-Maker JSON project, import it, preview it, and render it locally.",
+      "accent": "#60a5fa"
+    },
+    {
+      "id": "steps",
+      "type": "bullets",
+      "duration": 5,
+      "title": "Your workflow",
+      "bullets": ["Generate a storyboard with any AI", "Import the JSON or ZIP file", "Edit scenes and export your MP4"],
+      "accent": "#fbbf24"
+    },
+    {
+      "id": "ending",
+      "type": "outro",
+      "duration": 4,
+      "title": "CREATE SOMETHING",
+      "body": "No AI API required.",
+      "accent": "#34d399"
+    }
+  ]
+}
