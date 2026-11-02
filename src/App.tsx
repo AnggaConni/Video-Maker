@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { renderMediaOnWeb } from "@remotion/web-renderer";
 import { ClipboardCopy, Download, FileArchive, FileJson, Film, FolderOpen, Play, Plus, RefreshCw, Upload, WandSparkles } from "lucide-react";
@@ -78,7 +78,7 @@ export default function App() {
           fps: project.fps,
           width: project.width,
           height: project.height,
-          calculateMetadata: null,
+          defaultProps: { project },
         },
         inputProps: { project },
         container: "mp4",
